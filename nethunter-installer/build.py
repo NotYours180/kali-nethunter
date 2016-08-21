@@ -127,9 +127,9 @@ def supersu(forcedown, beta):
 
 	if not os.path.isfile(suzip):
 		if beta:
-			surl = getdlpage('https://download.chainfire.eu/924/SuperSU/BETA-SuperSU-v2.68-20160228150503.zip')
+			surl = getdlpage('https://download.chainfire.eu/supersu-beta')
 		else:
-			surl = getdlpage('https://download.chainfire.eu/supersu-stable')
+			surl = getdlpage('https://download.chainfire.eu/969/SuperSU/UPDATE-SuperSU-v2.76-20160630161323.zip')
 
 		if surl:
 			download(surl + '?retrieve_file=1', suzip)
@@ -141,9 +141,9 @@ def supersu(forcedown, beta):
 
 def allapps(forcedown):
 	apps = {
-		'BlueNMEA':'http://max.kellermann.name/download/blue-nmea/BlueNMEA-2.1.3.apk',
 		'Hackerskeyboard':'https://f-droid.org/repo/org.pocketworkstation.pckeyboard_1038002.apk',
-		'Drivedroid':'http://softwarebakery.com/apps/drivedroid/files/drivedroid-free-0.9.29.apk',
+		'Drivedroid':'http://softwarebakery.com/apps/drivedroid/files/drivedroid-free-0.10.17.apk',
+		'OpenVPN':'https://f-droid.org/repo/de.blinkt.openvpn_138.apk',
 		'USBKeyboard':'https://github.com/pelya/android-keyboard-gadget/raw/master/USB-Keyboard.apk',
 		'RFAnalyzer':'https://github.com/demantz/RFAnalyzer/raw/master/RFAnalyzer.apk',
 		'Shodan':'https://github.com/PaulSec/Shodan.io-mobile-app/raw/master/io.shodan.app.apk',
@@ -305,7 +305,7 @@ def setupkernel():
 		'boot_block':readkey('block')
 	})
 
-	device_path = os.path.join('kernels', OS, Device)
+	device_path = os.path.join('devices', OS, Device)
 
 	# Copy kernel image from version/device to boot-patcher folder
 	kernel_images = [ 'zImage', 'zImage-dtb', 'Image', 'Image-dtb', 'Image.gz', 'Image.gz-dtb' ]
@@ -343,7 +343,7 @@ def setupkernel():
 	modules_path = os.path.join(device_path, 'modules')
 	if os.path.exists(modules_path):
 		print('Found additional kernel modules at: ' + modules_path)
-		copytree(modules_path, os.path.join(out_path, LibDir, 'modules'))
+		copytree(modules_path, os.path.join(out_path, 'modules'))
 
 	# Copy any device specific firmware
 	firmware_path = os.path.join(device_path, 'firmware')
@@ -410,8 +410,9 @@ def main():
 	global IgnoredFiles
 	global TimeStamp
 
-	supersu_beta = True
+	supersu_beta = False
 
+	devices_cfg = os.path.join('devices', 'devices.cfg')
 	IgnoredFiles = ['arch', 'placeholder', '.DS_Store', '.git*', '.idea']
 	t = datetime.datetime.now()
 	TimeStamp = "%04d%02d%02d_%02d%02d%02d" % (t.year, t.month, t.day, t.hour, t.minute, t.second)
@@ -422,10 +423,10 @@ def main():
 	# Read devices.cfg, get device names
 	try:
 		Config = ConfigParser.ConfigParser()
-		Config.read('devices.cfg')
+		Config.read(devices_cfg)
 		devicenames = Config.sections()
 	except:
-		abort('Could not read devices.cfg')
+		abort('Could not read %s! Maybe you need to run ./bootstrap.sh?' % devices_cfg)
 
 	help_device = 'Allowed device names: \n'
 	for device in devicenames:
@@ -436,6 +437,7 @@ def main():
 	parser.add_argument('--kitkat', '-kk', action='store_true', help='Android 4.4.4')
 	parser.add_argument('--lollipop', '-l', action='store_true', help='Android 5')
 	parser.add_argument('--marshmallow', '-m', action='store_true', help='Android 6')
+	parser.add_argument('--nougat', '-n', action='store_true', help='Android 7')
 	parser.add_argument('--forcedown', '-f', action='store_true', help='Force redownloading')
 	parser.add_argument('--uninstaller', '-u', action='store_true', help='Create an uninstaller')
 	parser.add_argument('--kernel', '-k', action='store_true', help='Build kernel installer only')
@@ -454,7 +456,7 @@ def main():
 		if args.device in devicenames:
 			Device = args.device
 		else:
-			abort('Device %s not found devices.cfg' % args.device)
+			abort('Device %s not found in %s' % (args.device, devices_cfg))
 	elif args.generic:
 		Arch = args.generic
 		Device = 'generic'
@@ -481,10 +483,13 @@ def main():
 		if args.marshmallow:
 			OS = 'marshmallow'
 			i += 1
+		if args.nougat:
+			OS = 'nougat'
+			i += 1
 		if i == 0:
-			abort('Missing Android version. Available options: --kitkat, --lollipop, --marshmallow')
+			abort('Missing Android version. Available options: --kitkat, --lollipop, --marshmallow, --nougat')
 		elif i > 1:
-			abort('Select only one Android version: --kitkat, --lollipop, --marshmallow')
+			abort('Select only one Android version: --kitkat, --lollipop, --marshmallow, --nougat')
 
 		if args.rootfs and not (args.rootfs == 'full' or args.rootfs == 'minimal'):
 			abort('Invalid Kali rootfs size. Available options: --rootfs full, --rootfs minimal')

@@ -35,6 +35,13 @@ rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 
+# Enable PHP in Apache
+a2enmod php7.0
+
+# Enable /var/www/html as default, disable mana unless we need it
+a2dissite 000-mana-toolkit.conf
+a2ensite 000-default.conf
+
 rm -f /third-stage
 EOF
 
@@ -102,9 +109,9 @@ sed -i 's/_apt:x:104:65534/_apt:x:104:3004/g' kali-$architecture/etc/passwd
 # Insert correct .bashrc file from kali-defaults
 LANG=C chroot kali-$architecture cp /etc/skel/.bashrc /root/.bashrc
 
-# Install bettercap
-LANG=C chroot kali-$architecture gem install bettercap
-
 # Copy necessary scripts and make executable (/dev/null to supress error msgs for following symlinks)
 LANG=C chroot kali-$architecture chmod 755 /usr/bin/* 2> /dev/null
 LANG=C chroot kali-$architecture chmod 755 /usr/share/mana-toolkit/run-mana/*.sh 2> /dev/null
+
+# Minor fix for mana-toolkit which made changes in update.  We need to mirror fixes.
+sed -i 's/dhcpd -cf \/etc\/mana-toolkit\/dhcpd\.conf \$phy/dnsmasq -z -C \/etc\/mana-toolkit\/dnsmasq-dhcpd\.conf -i \$phy -I lo/' kali-$architecture/usr/share/mana-toolkit/run-mana/*
